@@ -1,0 +1,8 @@
+*.zip
+*.pyc
+.ipynb_checkpoints/*.*
+*/.ipynb_checkpoints/*.*
+*.pkl
+*.parquet
+__pycache__/
+
