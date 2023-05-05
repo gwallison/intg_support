@@ -18,7 +18,7 @@ import numpy as np
 import geopandas
 import os
 import shutil
-from core.file_handlers import store_df_as_csv, get_csv, save_df, get_df
+from intg_support.file_handlers import store_df_as_csv, get_csv, save_df, get_df
 
 # import build_common
 # trans_dir = build_common.get_transformed_dir()

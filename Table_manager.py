@@ -9,10 +9,10 @@ import numpy as np
 import gc
 import os
 import datetime
-import core.mass_tools as mt
-import core.cas_tools as ct
-import core.external_dataset_tools as et
-from core.file_handlers import store_df_as_csv, get_csv, save_df, get_df
+import intg_support.mass_tools as mt
+import intg_support.cas_tools as ct
+import intg_support.external_dataset_tools as et
+from intg_support.file_handlers import store_df_as_csv, get_csv, save_df, get_df
 
 class Table_constructor():
     

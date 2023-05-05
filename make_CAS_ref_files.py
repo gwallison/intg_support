@@ -30,7 +30,7 @@ import shutil
 import os
 #import csv
 import io
-from core.file_handlers import store_df_as_csv, get_csv, save_df, get_df
+from intg_support.file_handlers import store_df_as_csv, get_csv, save_df, get_df
 import warnings # to suppress annoying openpyxl warnings
 
 # default, but probably elsewhere

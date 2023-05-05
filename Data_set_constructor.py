@@ -10,7 +10,7 @@ the raw excel collection and creating the output data sets.
 This version created from openFF-build in Jan 2023    
 """
 import os
-import core.Table_manager as c_tab
+import intg_support.Table_manager as c_tab
 
 
 class Data_set_constructor():

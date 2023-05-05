@@ -8,12 +8,12 @@ Change on Mar 14, 2022: Remove SkyTruth archive from the standard_filtered
 data set.
 """
 
-import core.Table_manager as c_tab
+import intg_support.Table_manager as c_tab
 import pandas as pd
 import os
 import zipfile
 import datetime
-import core.cas_tools as ct
+import intg_support.cas_tools as ct
 
 
 def modification_date(filename):
