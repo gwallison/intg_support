@@ -189,5 +189,5 @@ class Read_FF():
         assert(len(final)==len(final.reckey.unique()))
         # final.to_pickle(self.picklefn)
         save_df(final,self.picklefn)
-        return final
+        #return final
         
