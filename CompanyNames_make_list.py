@@ -12,7 +12,7 @@ import os
 import shutil
 import pandas as pd
 import numpy as np
-import common
+import intg_support.common
 from intg_support.file_handlers import store_df_as_csv, get_csv, save_df, get_df
 
 def get_old_xlate_df(ref_dir):
@@ -38,8 +38,8 @@ def make_xlate_df(raw_df):
     gbo = gb.groupby('OperatorName',as_index=False)['UploadKey'].count().\
         rename({'UploadKey':'OpCount'},axis=1)
     gbyo = raw_df.groupby(['OperatorName'])['year'].apply(set).reset_index()
-    gbyo.year = gbyo.year.map(lambda x: common.sort_id(x))
-    gbyo.year = gbyo.year.map(lambda x: common.xlate_to_str(x,'; ',trunc=False))
+    gbyo.year = gbyo.year.map(lambda x: intg_support.common.sort_id(x))
+    gbyo.year = gbyo.year.map(lambda x: intg_support.common.xlate_to_str(x,'; ',trunc=False))
     gbyo.rename({'year':'OperatorYears'},axis=1,inplace=True)
     oout = pd.merge(gbo,gbyo,on='OperatorName',how='left')
     oout['rawName'] = oout.OperatorName
@@ -47,8 +47,8 @@ def make_xlate_df(raw_df):
     gbs = raw_df.groupby(['Supplier'],as_index=False)['CASNumber'].count().\
         rename({'CASNumber':'SupCount'},axis=1)
     gbys = raw_df.groupby(['Supplier'])['year'].apply(set).reset_index()
-    gbys.year = gbys.year.map(lambda x: common.sort_id(x))
-    gbys.year = gbys.year.map(lambda x: common.xlate_to_str(x,'; ',trunc=False))
+    gbys.year = gbys.year.map(lambda x: intg_support.common.sort_id(x))
+    gbys.year = gbys.year.map(lambda x: intg_support.common.xlate_to_str(x,'; ',trunc=False))
     gbys.rename({'year':'SupplierYears'},axis=1,inplace=True)
     sout = pd.merge(gbs,gbys,on='Supplier',how='left')
     sout['rawName'] = sout.Supplier
