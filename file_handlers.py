@@ -49,10 +49,10 @@ def save_df(df,fn):
     else:
         df.to_parquet(fn)
     
-def get_df(fn):
+def get_df(fn,cols=None):
     if fn[-4:]=='.csv':
         return get_csv(fn)
-    return pd.read_parquet(fn)
+    return pd.read_parquet(fn,columns=cols)
 
 
 if __name__ == '__main__':

@@ -21,6 +21,8 @@ from intg_support.file_handlers import store_df_as_csv, get_csv, save_df, get_df
 
 
 class Read_FF():
+    """While moving to colab operations, we clearly need to cut down on amount
+    of ram used for this process."""
     
     def __init__(self,in_name='testData.zip',
                  zipdir='./working/',
@@ -110,6 +112,7 @@ class Read_FF():
             gb['clean'] = gb[colname].replace(r'\r+|\n+|\t+',' ', regex=True)
             # remove whitespace from the ends
             gb.clean = gb.clean.str.strip()
+            print(f'    -- Num cleaned : {(gb.clean!=gb[colname]).sum()}')
             if colname in self.cols_to_lower:
                 gb.clean = gb.clean.str.lower()
             df = pd.merge(df,gb,on=colname,how='left',validate='m:1')
@@ -178,12 +181,6 @@ class Read_FF():
             final[col].fillna('MISSING',inplace=True)
             
         final = self.clean_cols(final)
-
-        # final.CASNumber.fillna('MISSING',inplace=True)
-        # final.IngredientName.fillna('MISSING',inplace=True)
-        # final.OperatorName.fillna('MISSING',inplace=True)
-        # final.Supplier.fillna('MISSING',inplace=True)
-        # final.TradeName.fillna('MISSING',inplace=True)
 
         final = self.get_api10(final)
         final.reset_index(drop=True,inplace=True) #  single integer as index
