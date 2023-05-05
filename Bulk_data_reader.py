@@ -106,7 +106,7 @@ class Read_FF():
 
         for colname in self.cols_to_clean:
             print(f'   -- cleaning {colname}')
-            gb = df.groupby(colname,as_index=False)['UploadKey'].first()
+            gb = df.groupby(colname,as_index=False).size()
             gb.columns = [colname,'junk']
             # replace return, newline, tab with single space
             gb['clean'] = gb[colname].replace(r'\r+|\n+|\t+',' ', regex=True)
@@ -119,10 +119,10 @@ class Read_FF():
             df.rename({colname:'oldRaw','clean':colname},axis=1,inplace=True)
             df.drop(['oldRaw','junk'],axis=1,inplace=True)
             
-            # last check: do the has_nonprintable check in cas_tools
-            flag = df[colname].map(lambda x: ct.has_non_printable(x))
-            if flag.sum()!=0:
-                print(f'Warning: non-printable characters still detected in {colname}!')
+            # # last check: do the has_nonprintable check in cas_tools
+            # flag = df[colname].map(lambda x: ct.has_non_printable(x))
+            # if flag.sum()!=0:
+            #     print(f'Warning: non-printable characters still detected in {colname}!')
            
             df.Supplier = np.where(df.Supplier=='0.0','0',df.Supplier)
             
