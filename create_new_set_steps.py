@@ -142,7 +142,7 @@ def create_master_raw_df(create_raw=True):
         rff = bdr.Read_FF(in_name='testData.zip', 
                           zipdir=work_dir,workdir = work_dir,
                           origdir=orig_dir,
-       b                   flat_pickle = 'raw_flat.parquet')
+                          flat_pickle = 'raw_flat.parquet')
         rff.import_raw()
         raw_df = get_raw_df(cols=['reckey'])
         # get number of records from old, repository data set
