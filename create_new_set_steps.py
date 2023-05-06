@@ -20,6 +20,11 @@ import urllib.request
 from intg_support.file_handlers import store_df_as_csv, get_csv, save_df, get_df
 import intg_support.fetch_new_bulk_data as fnbd
 import intg_support.Bulk_data_reader as bdr
+import intg_support.CAS_master_list as casmaster
+import intg_support.make_CAS_ref_files as mcrf
+import intg_support.CAS_2_build_casing as cas2
+import intg_support.IngName_curator as IngNc
+import intg_support.CompanyNames_make_list as complist
 
 use_itables = True
 
@@ -175,4 +180,192 @@ def update_upload_date_file():
     outdf = pd.concat([outdf,gb],sort=True)
     # outdf.to_csv(os.path.join(work_dir,'upload_dates.csv'),index=False)
     save_df(outdf,os.path.join(work_dir,'upload_dates.parquet'))    
-    completed
+    completed()
+    
+def cas_curate_step1():
+    newcas = casmaster.get_new_tentative_CAS_list(get_raw_df(cols=['CASNumber']),orig_dir=orig_dir,work_dir=work_dir)
+    if len(newcas)>0:
+        iShow(newcas)
+        if len(newcas[newcas.tent_is_in_ref==False])>0:
+            display(md('## Go to STEP B: Use SciFinder for `CASNumber`s not in reference already'))
+        else:
+            display(md('## Nothing to look up in SciFinder, but some curation necessary.  Skip to **Step XX**'))
+    else:
+        display(md('### No new CAS numbers to curate.  Skip to **Step E**'))
+    completed() 
+    
+def cas_curate_step2():
+# This first part creates a new reference file that includes the new SciFinder data.
+#   (we will run this again after we collect the CompTox data
+    maker = mcrf.CAS_list_maker(orig_dir,work_dir)
+    maker.make_partial_set()
+    
+    # Next we make a list of CAS records that need to be curated
+    newcas = casmaster.get_new_tentative_CAS_list(get_raw_df(cols=['CASNumber']),orig_dir=orig_dir,work_dir=work_dir)
+    casmaster.make_CAS_to_curate_file(newcas,ref_dir=orig_dir,work_dir=work_dir)    
+    
+def cas_curate_step3():
+    flag = casmaster.is_new_complete(work_dir)
+    if flag:
+        completed()
+    else:
+        completed(False,"More CASNumbers remain to be curated. Don't proceed until corrected")
+
+def update_CompTox_lists():
+    maker = mcrf.CAS_list_maker(orig_dir,work_dir)
+    maker.make_full_package()
+    # get_df(r"C:\MyDocs\OpenFF\src\openFF-cloud\work_dir\comptox_lists_table.parquet")
+    completed()
+    
+def casing_step1():
+    new_casing = cas2.make_casing(get_raw_df(cols=['CASNumber','IngredientName']),ref_dir=orig_dir,work_dir=work_dir) 
+    t = new_casing[new_casing.first_date.isna()].copy()
+    if len(t)>0:
+        refdic = IngNc.build_refdic(ref_dir=work_dir)
+        refdic = IngNc.summarize_refs(refdic)
+        fsdf = IngNc.full_scan(t,refdic,pd.DataFrame(),work_dir)
+        # print(fsdf.columns)
+        fsdf = IngNc.analyze_fullscan(fsdf)
+        # print(fsdf.columns)
+        store_df_as_csv(fsdf,os.path.join(work_dir,'casing_TO_CURATE.csv'))
+        fsdf = fsdf.reset_index()
+        iShow(fsdf[['CASNumber', 'curatedCAS', 'IngredientName', 'recog_syn', 'synCAS',
+               'match_ratio', 'n_close_match', 'source', 'bgCAS', 'rrank', 'picked']],
+              maxBytes=0,classes="display compact cell-border")
+        completed()
+    else:
+        # if no new, copy original casing_curated.csv to work_dir
+        shutil.copy(os.path.join(orig_dir,'curation_files','casing_curated.parquet'),work_dir)
+        completed(True,'No new CAS|Ing to process; skip next step')
+        
+def casing_step2():
+    Today = datetime.datetime.today().strftime('%Y-%m-%d')
+    try:
+        modified = pd.read_csv(os.path.join(work_dir,'casing_modified.csv'))
+        modified['first_date'] = 'D:'+f'{Today}'
+        # print(modified.columns)
+        oldcasing = get_df(os.path.join(orig_dir,'curation_files','casing_curated.parquet'))
+        try: # works only on casing gerenated in non-cloud env. 
+            oldcasing['synCAS'] = oldcasing.prospect_CAS_fromIng
+            oldcasing['source'] = oldcasing.bgSource
+        except:
+            pass
+        together = pd.concat([modified[modified.picked=='xxx'][['CASNumber','IngredientName','curatedCAS','recog_syn','synCAS',
+                                                                'bgCAS','source','first_date','n_close_match']],
+                              oldcasing[['CASNumber','IngredientName','curatedCAS','recog_syn','synCAS','bgCAS','source',
+                                          'first_date','change_date','change_comment']] ],sort=True)
+        together = together[['CASNumber','IngredientName','curatedCAS','recog_syn','synCAS','n_close_match',
+                                                                'bgCAS','source','first_date','change_date','change_comment']]
+        save_df(together,os.path.join(work_dir,'casing_curated.parquet'))
+    except:
+        display(md("#### casing_modified.csv not found in work_dir.<br>Assuming you mean to use repo version of casing_curated"))
+        shutil.copy(os.path.join(orig_dir,'curation_files','casing_curated.parquet'),
+                    os.path.join(work_dir,'casing_curated.parquet'))
+        together = get_df(os.path.join(work_dir,'casing_curated.parquet'))
+    
+    completed()
+    iShow(together,maxBytes=0,classes="display compact cell-border")
+    
+def casing_step3():
+    completed(cas2.is_casing_complete(get_raw_df(cols=['CASNumber','IngredientName']),work_dir))
+    
+def companies_step1():
+    companies = complist.add_new_to_Xlate(get_raw_df(['CASNumber','OperatorName',
+                                                      'Supplier','UploadKey','year']),
+                                          ref_dir=orig_dir,out_dir=work_dir)
+    
+    completed()
+    iShow(companies.reset_index(drop=True),maxBytes=0,columnDefs=[{"width": "100px", "targets": 0}],
+         classes="display compact cell-border", scrollX=True)  
+    
+def companies_step2():
+    completed(complist.is_company_complete(work_dir))
+    
+def location_step1():
+    import intg_support.Location_cleanup as loc_clean
+    locobj = loc_clean.Location_ID(get_raw_df(['api10','Latitude','Longitude',
+                                              'Projection','UploadKey',
+                                              'StateNumber','CountyNumber',
+                                              'StateName','CountyName']),
+                                   ref_dir=orig_dir,out_dir=work_dir,ext_dir=ext_dir)
+    _ = locobj.clean_location()
+    completed()
+    
+def location_step2():
+    import intg_support.Location_cleanup as loc_clean
+    locobj = loc_clean.Location_ID(get_raw_df(),ref_dir=orig_dir,out_dir=work_dir)
+    completed(locobj.is_location_complete())
+    
+def carrier_step():
+    import intg_support.Carrier_1_identify_in_new as car1
+    
+    carobj = car1.Carrier_ID(get_raw_df(cols=['CASNumber','IngredientName','UploadKey','APINumber',
+                                              'PercentHFJob','TotalBaseWaterVolume','date',
+                                              'Purpose','IngredientKey','TradeName','MassIngredient']),
+                             ref_dir=orig_dir,out_dir=work_dir)
+    completed(carobj.create_full_carrier_set())
+    
+def builder_step1():
+    # get all the CAS and CompTox ref files
+    cdir = os.path.join(orig_dir,'CAS_ref_files')
+    fdir = os.path.join(final_dir,"CAS_ref_files")
+    shutil.copytree(src=cdir,dst=fdir,dirs_exist_ok=True)
+    
+    cdir = os.path.join(orig_dir,'CompTox_ref_files')
+    fdir = os.path.join(final_dir,"CompTox_ref_files")
+    shutil.copytree(src=cdir,dst=fdir,dirs_exist_ok=True)
+    
+    cdir = os.path.join(work_dir,'new_CAS_REF')
+    fdir = os.path.join(final_dir,"CAS_ref_files")
+    shutil.copytree(src=cdir,dst=fdir,dirs_exist_ok=True)
+    
+    # get files from orig_dir
+    files = [
+             'missing_values.csv',
+             'new_state_county_ref.csv',
+             'IngName_non-specific_list.parquet'
+     ]
+    for fn in files:
+        shutil.copy(os.path.join(orig_dir,'curation_files',fn),
+                    os.path.join(final_dir,'curation_files',fn))
+    # get the curation files from the working dir
+    files = [
+             'carrier_list_auto.parquet',
+             'carrier_list_prob.parquet',
+             'casing_curated.parquet',
+             'CAS_curated.parquet',
+             'CT_syn_backup.parquet',
+             'comptox_list_meta.parquet',
+             'comptox_lists_table.parquet',
+             'comptox-chemical-lists-meta.xlsx',
+             'master_cas_number_list.parquet',
+             'master_synonym_list.parquet',
+             'CAS_deprecated.parquet',
+             'company_xlate.parquet',
+             'location_curated.parquet',
+             'uploadKey_ref.parquet', 
+             'upload_dates.parquet']
+    for fn in files:
+        shutil.copy(os.path.join(work_dir,fn),
+                    os.path.join(final_dir,'curation_files',fn))
+        
+def builder_step2():
+    # data_set_constructor
+    import intg_support.Data_set_constructor as dsc
+    
+    dataobj = dsc.Data_set_constructor(get_raw_df(),final_dir,final_dir,ext_dir)
+    _ = dataobj.create_full_set()
+    completed()  
+    
+def builder_step3():
+    # create parquet data set andn run tests
+    import intg_support.Analysis_set as a_set
+    import intg_support.Tests_of_final as tof
+
+    ana_set = a_set.Full_set(sources=final_dir,outdir=final_dir)
+    df = ana_set.get_set(verbose=False)
+
+    # run tests
+    tests = tof.final_test(df)
+    tests.run_all_tests()
+    completed()
