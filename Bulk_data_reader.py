@@ -86,7 +86,6 @@ class Read_FF():
         df['year'] = df.date.dt.year
         return df
     
-    # def clean_cols(self,df,cols=[]):
     def clean_cols(self,df):
         """FracFocus CSV data can sometimes include non-printing characters which
         are not intended and are a nuisance.  This function removes them from the
@@ -129,14 +128,14 @@ class Read_FF():
         # return df
 
         for colname in self.cols_to_clean:
-            print(f'   -- cleaning {colname}')
+            #print(f'   -- cleaning {colname}')
             gb = df.groupby(colname,as_index=False).size()
             gb.columns = [colname,'junk']
             # replace return, newline, tab with single space
             gb['clean'] = gb[colname].replace(r'\r+|\n+|\t+',' ', regex=True)
             # remove whitespace from the ends
             gb.clean = gb.clean.str.strip()
-            print(f'    -- Num cleaned : {(gb.clean!=gb[colname]).sum()}')
+            #print(f'    -- Num cleaned : {(gb.clean!=gb[colname]).sum()}')
             if colname in self.cols_to_lower:
                 gb.clean = gb.clean.str.lower()
             gb.set_index(colname,inplace=True)
@@ -159,6 +158,67 @@ class Read_FF():
         return df
     
     def import_raw(self):
+        """
+        """
+        fill_lst = ['CASNumber','IngredientName','OperatorName',
+                    'Supplier','TradeName','Purpose']
+        dflist = []
+        with zipfile.ZipFile(self.zname) as z:
+            inf = []
+            for fn in z.namelist():
+                # the files in the FF archive with the Ingredient records
+                #  always start with this prefix...
+                if fn[:17]=='FracFocusRegistry':
+                    # need to extract number of file to correctly order them
+                    num = int(re.search(r'\d+',fn).group())
+                    inf.append((num,fn))
+                    
+            inf.sort()
+            infiles = [x for _,x in inf]  # now we have a well-sorted list
+            #print(self.startfile,self.endfile)
+            for fn in infiles[0:]:
+                with z.open(fn) as f:
+                    print(f' -- processing {fn}')
+                    t = pd.read_csv(f,low_memory=False,
+                                    dtype={'APINumber':'str',
+                                           'CASNumber':'str',
+                                           'IngredientName':'str',
+                                           'Supplier':'str',
+                                           'OperatorName':'str',
+                                           'StateName':'str',
+                                           'CountyName':'str',
+                                           'FederalWell':'str',
+                                           'IndianWell':'str',
+                                           'IngredientComment': 'str'},
+                                    na_values = self.missing_values
+                                    )
+                    
+                    t = self.make_date_fields(t)
+                    
+                    t['ingKeyPresent'] = t.IngredientKey.notna()
+                    
+                    t['raw_filename'] = fn # helpful for manual searches of raw files
+                    t['data_source'] = 'bulk' # needed for backwards compat with catalog
+                    t['density_from_comment'] = t.IngredientComment\
+                                                .map(lambda x: self.get_density_from_comment(x))
+                    for col in fill_lst:
+                        t[col].fillna('MISSING',inplace=True)
+                        
+                    t = self.clean_cols(t)            
+                    t = self.get_api10(t)
+
+                    dflist.append(t)
+        final = pd.concat(dflist,sort=True)
+        
+        final.reset_index(drop=True,inplace=True) #  single integer as index
+        final['reckey'] = final.index.astype(int)
+        final.drop(columns=self.dropList,inplace=True)
+        assert(len(final)==len(final.reckey.unique()))
+        # final.to_pickle(self.picklefn)
+        save_df(final,self.picklefn)
+        #return final
+        
+    def import_raw_old(self):
         """
         """
         dflist = []
@@ -220,4 +280,3 @@ class Read_FF():
         # final.to_pickle(self.picklefn)
         save_df(final,self.picklefn)
         #return final
-        
