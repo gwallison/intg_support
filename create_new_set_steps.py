@@ -65,6 +65,7 @@ def get_raw_df(cols=None):
   """without a list of cols, whole df will be returned"""
   return pd.read_parquet(os.path.join(work_dir,'raw_flat.parquet'),
                          columns=cols)
+
 def create_and_fill_folders(download_repo=True,unpack_to_orig=True):
     dirs = [orig_dir,work_dir,final_dir,ext_dir]
     for d in dirs:
@@ -141,7 +142,7 @@ def create_master_raw_df(create_raw=True):
         rff = bdr.Read_FF(in_name='testData.zip', 
                           zipdir=work_dir,workdir = work_dir,
                           origdir=orig_dir,
-                          flat_pickle = 'raw_flat.parquet')
+       b                   flat_pickle = 'raw_flat.parquet')
         rff.import_raw()
         raw_df = get_raw_df(cols=['reckey'])
         # get number of records from old, repository data set
