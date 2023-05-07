@@ -10,21 +10,22 @@ cell.
 
 # Preamble: run as soon as this module is imported
 
-import os, shutil
+import os 
+import shutil
 import pandas as pd
-from IPython.display import HTML, display
+from IPython.display import display
 from IPython.display import Markdown as md
-import requests
-import datetime
-import urllib.request
-from intg_support.file_handlers import store_df_as_csv, get_csv, save_df, get_df
-import intg_support.fetch_new_bulk_data as fnbd
-import intg_support.Bulk_data_reader as bdr
-import intg_support.CAS_master_list as casmaster
-import intg_support.make_CAS_ref_files as mcrf
-import intg_support.CAS_2_build_casing as cas2
-import intg_support.IngName_curator as IngNc
-import intg_support.CompanyNames_make_list as complist
+# import requests
+# import datetime
+# import urllib.request
+from intg_support.file_handlers import store_df_as_csv, save_df, get_df
+# import intg_support.fetch_new_bulk_data as fnbd
+# import intg_support.Bulk_data_reader as bdr
+# import intg_support.CAS_master_list as casmaster
+# import intg_support.make_CAS_ref_files as mcrf
+# import intg_support.CAS_2_build_casing as cas2
+# import intg_support.IngName_curator as IngNc
+# import intg_support.CompanyNames_make_list as complist
 
 use_itables = True
 
@@ -49,6 +50,7 @@ else:
        
         
 def clr_cell(txt='Cell Completed', color = '#cfc'):
+    import datetime    
     t = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
     s = f"""<div style="background-color: {color}; padding: 10px; border: 1px solid green;">"""
     s+= f'<h3> {txt} </h3> {t}'
@@ -72,6 +74,7 @@ def get_raw_df(cols=None):
                          columns=cols)
 
 def create_and_fill_folders(download_repo=True,unpack_to_orig=True):
+    import urllib.request
     dirs = [orig_dir,work_dir,final_dir,ext_dir]
     for d in dirs:
         if os.path.isdir(d):
@@ -115,6 +118,7 @@ def create_and_fill_folders(download_repo=True,unpack_to_orig=True):
     completed()    
 
 def get_external_files(download_ext=True):
+    import urllib.request
     ext_name = os.path.join(ext_dir,'openff_ext_files.zip')
     if download_ext:
         try:
@@ -131,6 +135,9 @@ def get_external_files(download_ext=True):
         completed(True,'Completed without new external download')
 
 def download_raw_FF(download_FF=True):
+    import intg_support.fetch_new_bulk_data as fnbd
+    import urllib.request
+    
     if download_FF:
         completed(fnbd.store_FF_bulk(newdir = work_dir,sources=orig_dir, archive=True, warn=True))
     else:
@@ -143,6 +150,7 @@ def download_raw_FF(download_FF=True):
             completed(True,'Copied previously downloaded FF dataset')
             
 def create_master_raw_df(create_raw=True):
+    import intg_support.Bulk_data_reader as bdr
     if create_raw:
         rff = bdr.Read_FF(in_name='testData.zip', 
                           zipdir=work_dir,workdir = work_dir,
@@ -162,6 +170,7 @@ def create_master_raw_df(create_raw=True):
         completed(True,'No action taken; new FF download skipped')
         
 def update_upload_date_file():
+    import datetime
     today = datetime.datetime.today()
     datefn= os.path.join(orig_dir,'curation_files','upload_dates.parquet')
     outdf = get_df(datefn)
@@ -183,6 +192,7 @@ def update_upload_date_file():
     completed()
     
 def cas_curate_step1():
+    import intg_support.CAS_master_list as casmaster
     newcas = casmaster.get_new_tentative_CAS_list(get_raw_df(cols=['CASNumber']),orig_dir=orig_dir,work_dir=work_dir)
     if len(newcas)>0:
         iShow(newcas)
@@ -195,6 +205,8 @@ def cas_curate_step1():
     completed() 
     
 def cas_curate_step2():
+    import intg_support.CAS_master_list as casmaster
+    import intg_support.make_CAS_ref_files as mcrf
 # This first part creates a new reference file that includes the new SciFinder data.
 #   (we will run this again after we collect the CompTox data
     maker = mcrf.CAS_list_maker(orig_dir,work_dir)
@@ -205,6 +217,7 @@ def cas_curate_step2():
     casmaster.make_CAS_to_curate_file(newcas,ref_dir=orig_dir,work_dir=work_dir)    
     
 def cas_curate_step3():
+    import intg_support.CAS_master_list as casmaster
     flag = casmaster.is_new_complete(work_dir)
     if flag:
         completed()
@@ -212,12 +225,16 @@ def cas_curate_step3():
         completed(False,"More CASNumbers remain to be curated. Don't proceed until corrected")
 
 def update_CompTox_lists():
+    import intg_support.make_CAS_ref_files as mcrf
     maker = mcrf.CAS_list_maker(orig_dir,work_dir)
     maker.make_full_package()
     # get_df(r"C:\MyDocs\OpenFF\src\openFF-cloud\work_dir\comptox_lists_table.parquet")
     completed()
     
 def casing_step1():
+    import intg_support.CAS_2_build_casing as cas2
+    import intg_support.IngName_curator as IngNc
+    
     new_casing = cas2.make_casing(get_raw_df(cols=['CASNumber','IngredientName']),ref_dir=orig_dir,work_dir=work_dir) 
     t = new_casing[new_casing.first_date.isna()].copy()
     if len(t)>0:
@@ -239,6 +256,7 @@ def casing_step1():
         completed(True,'No new CAS|Ing to process; skip next step')
         
 def casing_step2():
+    import datetime
     Today = datetime.datetime.today().strftime('%Y-%m-%d')
     try:
         modified = pd.read_csv(os.path.join(work_dir,'casing_modified.csv'))
@@ -267,9 +285,11 @@ def casing_step2():
     iShow(together,maxBytes=0,classes="display compact cell-border")
     
 def casing_step3():
+    import intg_support.CAS_2_build_casing as cas2
     completed(cas2.is_casing_complete(get_raw_df(cols=['CASNumber','IngredientName']),work_dir))
     
 def companies_step1():
+    import CompanyNames_make_list as complist
     companies = complist.add_new_to_Xlate(get_raw_df(['CASNumber','OperatorName',
                                                       'Supplier','UploadKey','year']),
                                           ref_dir=orig_dir,out_dir=work_dir)
@@ -279,6 +299,7 @@ def companies_step1():
          classes="display compact cell-border", scrollX=True)  
     
 def companies_step2():
+    import CompanyNames_make_list as complist
     completed(complist.is_company_complete(work_dir))
     
 def location_step1():
@@ -376,7 +397,7 @@ def make_repository():
     import shutil
     repo_name = 'cloud_repo_new'
     repodir = os.path.join(final_dir,repo_name)
-    pklsource = os.path.join(final_dir,'pickles')
+    #pklsource = os.path.join(final_dir,'pickles')
     
     try:
         os.mkdir(repodir)

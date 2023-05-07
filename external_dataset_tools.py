@@ -5,9 +5,9 @@ Created on Mon Nov 18 09:32:29 2019
 @author: Gary
 """
 import pandas as pd
-import numpy as np
+#import numpy as np
 import os
-import geopandas
+
 final_crs = 4326 # EPSG value for bgLat/bgLon; 4326 for WGS84: Google maps
 
 
@@ -107,6 +107,7 @@ def process_PADUS(df,sources='./sources/external_refs/',
     as well as a csv file with more details.
     concat geopandas: https://gis.stackexchange.com/questions/162659/joining-concat-list-of-similar-dataframes-in-geopandas
     """
+    import geopandas
     print(' -- searching for wells on Fed and Native lands')
     pkl_name = os.path.join(sources,'shape_files','padus.pkl')
     out_name = os.path.join(outdir,'PADUS_hits.csv')
