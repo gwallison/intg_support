@@ -289,7 +289,7 @@ def casing_step3():
     completed(cas2.is_casing_complete(get_raw_df(cols=['CASNumber','IngredientName']),work_dir))
     
 def companies_step1():
-    import CompanyNames_make_list as complist
+    import intg_support.CompanyNames_make_list as complist
     companies = complist.add_new_to_Xlate(get_raw_df(['CASNumber','OperatorName',
                                                       'Supplier','UploadKey','year']),
                                           ref_dir=orig_dir,out_dir=work_dir)
@@ -299,7 +299,7 @@ def companies_step1():
          classes="display compact cell-border", scrollX=True)  
     
 def companies_step2():
-    import CompanyNames_make_list as complist
+    import intg_support.CompanyNames_make_list as complist
     completed(complist.is_company_complete(work_dir))
     
 def location_step1():
@@ -383,10 +383,10 @@ def builder_step3():
     import intg_support.Analysis_set as a_set
     import intg_support.Tests_of_final as tof
 
-    ana_set = a_set.Full_set(sources=final_dir,outdir=final_dir)
-    print('Fetching full data set')
-    df = ana_set.get_set(verbose=False)
-
+    # ana_set = a_set.Full_set(sources=final_dir,outdir=final_dir)
+    # print('Fetching full data set')
+    # df = ana_set.get_set(verbose=False)
+    df = a_set.make_full_set_file(sources=final_dir,outdir=final_dir)
     # run tests
     print('Performing tests')
     tests = tof.final_test(df)
