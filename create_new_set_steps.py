@@ -363,9 +363,57 @@ def builder_step3():
     import intg_support.Tests_of_final as tof
 
     ana_set = a_set.Full_set(sources=final_dir,outdir=final_dir)
+    print('Fetching full data set')
     df = ana_set.get_set(verbose=False)
 
     # run tests
+    print('Performing tests')
     tests = tof.final_test(df)
     tests.run_all_tests()
     completed()
+    
+def make_repository():
+    import shutil
+    repo_name = 'cloud_repo_new'
+    repodir = os.path.join(final_dir,repo_name)
+    pklsource = os.path.join(final_dir,'pickles')
+    
+    try:
+        os.mkdir(repodir)
+    except:
+        print(f'{repodir} already exists?')
+    pickledir = os.path.join(repodir,'pickles')
+    try:
+        os.mkdir(pickledir)
+    except:
+        print(f'{pickledir} already exists?')
+    curdir = os.path.join(repodir,'curation_files')
+    try:
+        os.mkdir(curdir)
+    except:
+        print(f'{curdir} already exists?')
+            
+    # copy CAS and CompTox reference files
+    cdir = os.path.join(repodir,'CAS_ref_files')
+    sdir = os.path.join(final_dir,"CAS_ref_files")
+    shutil.copytree(sdir,cdir,dirs_exist_ok=True)
+    
+    cdir = os.path.join(repodir,'CompTox_ref_files')
+    sdir = os.path.join(final_dir,"CompTox_ref_files")
+    shutil.copytree(sdir,cdir,dirs_exist_ok=True)
+    
+    # copy curation files
+    cdir = os.path.join(repodir,'curation_files')
+    sdir = os.path.join(final_dir,"curation_files")
+    shutil.copytree(sdir,cdir,dirs_exist_ok=True)
+    
+    # copy pickles
+    cdir = os.path.join(repodir,'pickles')
+    sdir = os.path.join(final_dir,"pickles")
+    shutil.copytree(sdir,cdir,dirs_exist_ok=True)
+    
+    # Other files to copy
+    shutil.copy(os.path.join(final_dir,'full_df.parquet'),repodir)
+    
+    print('Making archive...')
+    completed(shutil.make_archive(repodir, 'zip', repodir))
