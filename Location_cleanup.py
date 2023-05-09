@@ -140,10 +140,14 @@ class Location_ID():
 
     def fetch_shapefiles(self):
         print('  -- fetching shapefiles')
-        url = 'https://www2.census.gov/geo/tiger/GENZ2018/shp/cb_2018_us_state_500k.zip'
+        # url = 'https://www2.census.gov/geo/tiger/GENZ2018/shp/cb_2018_us_state_500k.zip'
+        url = os.path.join(self.ext_dir,'shape_files','cb_2018_us_state_500k.zip')
+
         states = geopandas.read_file(url).rename({'NAME':'StateName'},axis=1)
         states.StateName = states.StateName.str.lower()
-        url = 'https://www2.census.gov/geo/tiger/GENZ2018/shp/cb_2018_us_county_500k.zip'
+
+        # url = 'https://www2.census.gov/geo/tiger/GENZ2018/shp/cb_2018_us_county_500k.zip'
+        url = os.path.join(self.ext_dir,'shape_files','cb_2018_us_county_500k.zip')
         counties = geopandas.read_file(url).rename({'NAME':'CountyName'},axis=1)
         counties.CountyName = counties.CountyName.str.lower()
         # get StateName into counties
