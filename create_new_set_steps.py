@@ -110,7 +110,7 @@ def create_and_fill_folders(download_repo=True,unpack_to_orig=True):
           urllib.request.urlretrieve(url, s_repo_name)
         except:
           completed(False,'Problem downloading repository!')
-        print('Continuing without downloading fresh copy of repository')
+          print('Continuing without downloading fresh copy of repository')
         
     if unpack_to_orig:
         print(' -- Unpacking existing repository into "orig" directory')
