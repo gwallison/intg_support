@@ -31,7 +31,7 @@ def get_orig_curated_CAS_list(orig_dir='./orig_dir/'):
     return get_df(os.path.join(orig_dir,'curation_files','CAS_curated.parquet'))
 
 def get_new_curated_CAS_list(work_dir='./work_dir/'):
-    return get_csv(os.path.join(work_dir,'CAS_curated_modified.csv'))
+    return get_csv(os.path.join(work_dir,'CAS_curated_modified.csv'),check_zero=False)
 
 def save_comptox_search_list(work_dir = './work_dir/'):
     df = get_new_curated_CAS_list(work_dir)
@@ -48,7 +48,7 @@ def is_new_complete(work_dir='/work_dir/'):
             save_comptox_search_list(work_dir)
         return (f1+f2)==0
     except:
-        print('No file named "CAS_curate_modified.cas" found.  Assuming you want to proceed...')
+        print('No file named "CAS_curate_modified.csv" found.  Assuming you want to proceed...')
         return True
     
 def get_new_CAS_list(rawdf):
