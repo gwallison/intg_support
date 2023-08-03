@@ -16,16 +16,8 @@ import pandas as pd
 from IPython.display import display
 from IPython.display import Markdown as md
 # import requests
-# import datetime
-# import urllib.request
+
 from intg_support.file_handlers import store_df_as_csv, save_df, get_df
-# import intg_support.fetch_new_bulk_data as fnbd
-# import intg_support.Bulk_data_reader as bdr
-# import intg_support.CAS_master_list as casmaster
-# import intg_support.make_CAS_ref_files as mcrf
-# import intg_support.CAS_2_build_casing as cas2
-# import intg_support.IngName_curator as IngNc
-# import intg_support.CompanyNames_make_list as complist
 
 use_itables = True
 
@@ -34,6 +26,9 @@ orig_dir = os.path.join(root_dir,'orig_dir')
 work_dir = os.path.join(root_dir,'work_dir')
 final_dir = os.path.join(root_dir,'final')
 ext_dir = os.path.join(root_dir,'ext')
+code_dir = os.path.join(root_dir,'intg_support')
+
+repo_info_fn = os.path.join(work_dir,'repo_info.csv')
 
 
 if use_itables:
@@ -49,7 +44,7 @@ else:
         display(df)
        
         
-def clr_cell(txt='Cell Completed', color = '#cfc'):
+def clr_cell(txt='Cell Completed', color = '#669999'):
     import datetime    
     t = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
     s = f"""<div style="background-color: {color}; padding: 10px; border: 1px solid green;">"""
@@ -66,15 +61,45 @@ def completed(status=True,txt=''):
     if status:
         clr_cell(txt)
     else:
-        clr_cell(txt,color='pink')
+        clr_cell(txt,color='#ff6666')
+
+def init_repo_info():
+    if not os.path.exists(repo_info_fn):        
+        with open(repo_info_fn,'w') as f:
+            f.write('variable,value\n')
+    else:
+        print('\n** repo_info.csv already exists!  Not deleting! **')
+        
+        
+def add_to_repo_info(var,val):
+    print(f'in add_to_repo_info: {var},{val}')
+    with open(repo_info_fn,'a') as f:
+        f.write(f'{var},{val}\n')
+        
+def get_new_repo_info(variable='FF_archive_filename'):
+    t = pd.read_csv(os.path.join(work_dir,'repo_info.csv'))
+    #print(t)
+    return t[t.variable==variable].iloc[0]['value']
+
+
+def get_old_repo_info(variable='bulk_download_date'):
+    t = pd.read_csv(os.path.join(orig_dir,'old_repo_info.csv'))
+    return t[t.variable==variable].iloc[0]['value']
+
 
 def get_raw_df(cols=None):
   """without a list of cols, whole df will be returned"""
   return pd.read_parquet(os.path.join(work_dir,'raw_flat.parquet'),
                          columns=cols)
 
-def create_and_fill_folders(download_repo=True,unpack_to_orig=True):
+
+
+def create_and_fill_folders(download_repo=True,
+                            repo_root='https://storage.googleapis.com/open-ff-common/repos/current_repo'):   
     import urllib.request
+
+
+
     dirs = [orig_dir,work_dir,final_dir,ext_dir]
     for d in dirs:
         if os.path.isdir(d):
@@ -83,6 +108,15 @@ def create_and_fill_folders(download_repo=True,unpack_to_orig=True):
             print(f'Creating directory: {d}')
             os.mkdir(d)
         if d==final_dir:
+            others = ['pickles','curation_files','CAS_ref_files','CompTox_ref_files','intg_support']
+            for oth in others:   
+                subdir = os.path.join(d,oth)
+                if os.path.isdir(os.path.join(subdir)):
+                    print(f'Directory exists: {subdir}')
+                else:
+                    print(f'Creating directory: {subdir}')
+                    os.mkdir(subdir)
+        if d==orig_dir:
             others = ['pickles','curation_files','CAS_ref_files','CompTox_ref_files']
             for oth in others:   
                 subdir = os.path.join(d,oth)
@@ -101,21 +135,39 @@ def create_and_fill_folders(download_repo=True,unpack_to_orig=True):
                     print(f'Creating directory: {subdir}')
                     os.mkdir(subdir)
     
-    s_repo_name = os.path.join(orig_dir,'cloud_repo.zip')
+#    s_repo_name = os.path.join(orig_dir,'cloud_repo.zip')
     
     if download_repo:
-        url = 'https://storage.googleapis.com/open-ff-common/repos/cloud_repo.zip'
-        print(url)
+        # first get file list
+        url = repo_root+'/dir_list.csv'
+        #print(url)
+        dir_fn = os.path.join(orig_dir,'dir_list.csv')
         try:
-          urllib.request.urlretrieve(url, s_repo_name)
+            urllib.request.urlretrieve(url, dir_fn)
         except:
-          completed(False,'Problem downloading repository!')
-          print('Continuing without downloading fresh copy of repository')
-        
-    if unpack_to_orig:
-        print(' -- Unpacking existing repository into "orig" directory')
-        shutil.unpack_archive(s_repo_name,orig_dir)
+            completed(False,'Problem downloading file list from repository!')
+        dir_df = pd.read_csv(dir_fn)
+        # print(dir_df) 
+        tocopy = ['CAS_ref_files','CompTox_ref_files','curation_files','pickles']
+        print('\nFetching repository files:')
+        for d in tocopy:
+            print(f'  -- {d}')
+            c = dir_df.directory==d
+            for i,row in dir_df[c].iterrows():
+                url = repo_root+'/'+d+'/'+row.filename
+                # print(url)
+                out_fn = os.path.join(orig_dir,d,row.filename)
+                urllib.request.urlretrieve(url, out_fn)
+        # get repo's info file
+        url = repo_root+'/repo_info.csv'
+        out_fn = os.path.join(orig_dir,'old_repo_info.csv')
+        urllib.request.urlretrieve(url, out_fn)
+        print(f'\nDate of downloaded (last) repo: {get_old_repo_info(variable="bulk_download_date")}')
+         
+    
+    init_repo_info()
     completed()    
+
 
 def get_external_files(download_ext=True):
     import urllib.request
@@ -136,18 +188,22 @@ def get_external_files(download_ext=True):
 
 def download_raw_FF(download_FF=True):
     import intg_support.fetch_new_bulk_data as fnbd
-    import urllib.request
+    import datetime 
+    today = datetime.datetime.today()
+
     
     if download_FF:
-        completed(fnbd.store_FF_bulk(newdir = work_dir,sources=orig_dir, archive=True, warn=True))
+        res = fnbd.store_FF_bulk(newdir = work_dir,sources=orig_dir, archive=False, warn=True)
+        if res:
+            add_to_repo_info('bulk_download_date', today.strftime("%Y-%m-%d"))
+            add_to_repo_info('FF_archive_filename', 'ff_archive_'+ today.strftime("%Y-%m-%d") + '.zip')
+        completed(res)
     else:
         fn = os.path.join(work_dir,'testData.zip')
         if os.path.isfile(fn):
             completed(True,'Completed using existing FF download')
         else:
-            url = 'https://storage.googleapis.com/open-ff-common/repos/testData.zip'
-            urllib.request.urlretrieve(url, fn)
-            completed(True,'Copied previously downloaded FF dataset')
+            completed(False,'Could not find "testData.zip" in work_dir\nFix this issue before proceeding')
             
 def create_master_raw_df(create_raw=True):
     import intg_support.Bulk_data_reader as bdr
@@ -170,6 +226,9 @@ def create_master_raw_df(create_raw=True):
         completed(True,'No action taken; new FF download skipped')
         
 def update_upload_date_file():
+    """this routine uses the previous upload_dates file to determine the new
+    disclosures. It marks the previous ones as DONE - so they will not be included
+    in the next "update".  """
     import datetime
     today = datetime.datetime.today()
     datefn= os.path.join(orig_dir,'curation_files','upload_dates.parquet')
@@ -201,7 +260,7 @@ def cas_curate_step1():
         else:
             display(md('## Nothing to look up in SciFinder, but some curation necessary.  Skip to **Step XX**'))
     else:
-        display(md('### No new CAS numbers to curate.  Skip to **Step E**'))
+        display(md('### No new CAS numbers to curate. '))
     completed() 
     
 def cas_curate_step2():
@@ -393,48 +452,110 @@ def builder_step3():
     tests.run_all_tests()
     completed()
     
-def make_repository():
+# def make_repository():
+#     import shutil
+#     repo_name = 'cloud_repo_new'
+#     repodir = os.path.join(final_dir,repo_name)
+    
+#     try:
+#         os.mkdir(repodir)
+#     except:
+#         print(f'{repodir} already exists?')
+#     pickledir = os.path.join(repodir,'pickles')
+#     try:
+#         os.mkdir(pickledir)
+#     except:
+#         print(f'{pickledir} already exists?')
+#     curdir = os.path.join(repodir,'curation_files')
+#     try:
+#         os.mkdir(curdir)
+#     except:
+#         print(f'{curdir} already exists?')
+            
+#     # copy CAS and CompTox reference files
+#     cdir = os.path.join(repodir,'CAS_ref_files')
+#     sdir = os.path.join(final_dir,"CAS_ref_files")
+#     shutil.copytree(sdir,cdir,dirs_exist_ok=True)
+    
+#     cdir = os.path.join(repodir,'CompTox_ref_files')
+#     sdir = os.path.join(final_dir,"CompTox_ref_files")
+#     shutil.copytree(sdir,cdir,dirs_exist_ok=True)
+    
+#     # copy curation files
+#     cdir = os.path.join(repodir,'curation_files')
+#     sdir = os.path.join(final_dir,"curation_files")
+#     shutil.copytree(sdir,cdir,dirs_exist_ok=True)
+    
+#     # copy pickles
+#     cdir = os.path.join(repodir,'pickles')
+#     sdir = os.path.join(final_dir,"pickles")
+#     shutil.copytree(sdir,cdir,dirs_exist_ok=True)
+    
+#     # Other files to copy
+#     shutil.copy(os.path.join(final_dir,'full_df.parquet'),repodir)
+    
+#     print('Making archive...')
+#     completed(shutil.make_archive(repodir, 'zip', repodir))
+    
+def make_repository(create_zip=False):
+    directories = []
+    filenames = []
     import shutil
     repo_name = 'cloud_repo_new'
     repodir = os.path.join(final_dir,repo_name)
-    #pklsource = os.path.join(final_dir,'pickles')
     
     try:
         os.mkdir(repodir)
     except:
-        print(f'{repodir} already exists?')
-    pickledir = os.path.join(repodir,'pickles')
-    try:
-        os.mkdir(pickledir)
-    except:
-        print(f'{pickledir} already exists?')
-    curdir = os.path.join(repodir,'curation_files')
-    try:
-        os.mkdir(curdir)
-    except:
-        print(f'{curdir} already exists?')
+        print(f'{repodir} already exists or other problem creating directory')
+
+    dirs = ['CAS_ref_files','CompTox_ref_files','curation_files','pickles']
+
+    for d in dirs:
+        # ndir = os.path.join(repodir,d)         
+        # try:
+        #     os.mkdir(ndir)
+        # except:
+        #     print(f'{ndir} already exists?')
+        # now copy all files
+        cdir = os.path.join(repodir,d)
+        sdir = os.path.join(final_dir,d)
+        shutil.copytree(sdir,cdir,dirs_exist_ok=True)
+        dlst = os.listdir(cdir)
+        for item in dlst:
+            directories.append(d)
+            filenames.append(item)
+
+    # get a copy of the code used
+    cdir = os.path.join(repodir,'intg_support')
+    shutil.copytree(code_dir,cdir,dirs_exist_ok=True)
+    dlst = os.listdir(cdir)
+    for item in dlst:
+        directories.append('intg_support')
+        filenames.append(item)
             
-    # copy CAS and CompTox reference files
-    cdir = os.path.join(repodir,'CAS_ref_files')
-    sdir = os.path.join(final_dir,"CAS_ref_files")
-    shutil.copytree(sdir,cdir,dirs_exist_ok=True)
-    
-    cdir = os.path.join(repodir,'CompTox_ref_files')
-    sdir = os.path.join(final_dir,"CompTox_ref_files")
-    shutil.copytree(sdir,cdir,dirs_exist_ok=True)
-    
-    # copy curation files
-    cdir = os.path.join(repodir,'curation_files')
-    sdir = os.path.join(final_dir,"curation_files")
-    shutil.copytree(sdir,cdir,dirs_exist_ok=True)
-    
-    # copy pickles
-    cdir = os.path.join(repodir,'pickles')
-    sdir = os.path.join(final_dir,"pickles")
-    shutil.copytree(sdir,cdir,dirs_exist_ok=True)
-    
+
     # Other files to copy
+    shutil.copy(os.path.join(work_dir,'repo_info.csv'),repodir)
+    directories.append('')
+    filenames.append('repo_info.csv')
+
     shutil.copy(os.path.join(final_dir,'full_df.parquet'),repodir)
+    directories.append('')
+    filenames.append('full_df.parquet')
     
-    print('Making archive...')
-    completed(shutil.make_archive(repodir, 'zip', repodir))
+    arcv_fn =  get_new_repo_info(variable='FF_archive_filename')
+    shutil.copy(os.path.join(work_dir,'testData.zip'),
+                os.path.join(repodir, arcv_fn))    
+    directories.append('')
+    filenames.append(arcv_fn)
+    
+    dir_df = pd.DataFrame({'directory':directories,'filename':filenames})
+    dir_df.to_csv(os.path.join(repodir,'dir_list.csv'))
+    
+    if create_zip:
+        print('Making zip archive...')
+        completed(shutil.make_archive(repodir, 'zip', repodir)) 
+    else:
+        print('Skipping zip zrchive creation')
+        completed()

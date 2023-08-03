@@ -37,7 +37,8 @@ def find_wells_near_point(lat,lon,wellgdf,crs=final_crs,name='test',
     s = s.to_crs(proj_crs)
     s = gpd.GeoDataFrame(geometry=s.geometry.buffer(buffer_m))
     s['name'] = name
-    tmp = gpd.sjoin(t,s,how='inner',predicate='within')
+    # tmp = gpd.sjoin(t,s,how='inner',predicate='within') Causing error after full update
+    tmp = gpd.sjoin(t,s,how='inner')#,predicate='within')
     return tmp.api10.tolist()
 
 def showWells(fulldf,flat,flon,apilst):
@@ -48,7 +49,7 @@ def showWells(fulldf,flat,flon,apilst):
         #print(api,t)
         locs = t.iloc[0].tolist()
         mlst.append({'location': locs, 'color':'blue', 'popup':f'APINumber: {api}'})
-    m = folium.Map(location=[flat, flon], zoom_start=17)
+    m = folium.Map(location=[flat, flon], zoom_start=12)
 
     markers = mlst
     # Add the markers to the map
@@ -60,6 +61,10 @@ def showWells(fulldf,flat,flon,apilst):
         ).add_to(m)
         # Display the map
         
+    # add circle around focal point
+    folium.Circle(radius=def_buffer,location=[flat,flon],
+                  color='crimson',fill=True).add_to(m)
+    
     # Add a tile layer with satellite imagery
     folium.TileLayer(
         tiles='https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',

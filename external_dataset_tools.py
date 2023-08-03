@@ -98,8 +98,7 @@ def add_all_bgCAS_tables(df,sources='./sources/external_refs/',
 
 #################  PADUS shape files ############################
 def process_PADUS(df,sources='./sources/external_refs/',
-                         outdir='./outdir/',
-                         use_pkl=True):
+                         outdir='./outdir/'):
     """Find joins with the PADUS database.  Note that some wells may have
     more than one join.  This routine will add the boolean fields 
        bgFederalWells and
@@ -110,25 +109,26 @@ def process_PADUS(df,sources='./sources/external_refs/',
     import geopandas
     print(' -- searching for wells on Fed and Native lands')
     pkl_name = os.path.join(sources,'shape_files','padus.pkl')
+    # print(pkl_name)
     out_name = os.path.join(outdir,'PADUS_hits.csv')
-    if use_pkl:
-        try:
-            shdf = pd.read_pickle(pkl_name)
-        except:
-            print('  -- fetch PADUS from zip files')
-            allshp = []
-            # shp_fn = r"C:\MyDocs\OpenFF\data\external_refs\shape_files\PADUS3_0_Region_7_SHP.zip!PADUS3_0Combined_Region7.shp"
-            for i in range(1,12):
-                print(f'     PADUS {i} file processed')
-                shp_fn = os.path.join(sources,'shape_files',
-                                      f'PADUS3_0_Region_{i}_SHP.zip!PADUS3_0Combined_Region{i}.shp')
-                shpdf = geopandas.read_file(shp_fn).to_crs(final_crs)
-                allshp.append(shpdf)
+    shdf = pd.read_pickle(pkl_name)
+        # BELOW IS WHAT IS USED TO CREATE THE PICKLE, which takes several minutes
+        # SEE the curate_external_data notebook for a working version
+        # except:
+        #     print('  -- fetch PADUS from zip files')
+        #     allshp = []
+        #     # shp_fn = r"C:\MyDocs\OpenFF\data\external_refs\shape_files\PADUS3_0_Region_7_SHP.zip!PADUS3_0Combined_Region7.shp"
+        #     for i in range(1,12):
+        #         print(f'     PADUS {i} file processed')
+        #         shp_fn = os.path.join(sources,'shape_files',
+        #                               f'PADUS3_0_Region_{i}_SHP.zip!PADUS3_0Combined_Region{i}.shp')
+        #         shpdf = geopandas.read_file(shp_fn).to_crs(final_crs)
+        #         allshp.append(shpdf)
         
-            shdf = geopandas.GeoDataFrame(pd.concat(allshp,
-                                                    ignore_index=True), 
-                                          crs=allshp[0].crs)
-            shdf.to_pickle(pkl_name)
+        #     shdf = geopandas.GeoDataFrame(pd.concat(allshp,
+        #                                             ignore_index=True), 
+        #                                   crs=allshp[0].crs)
+        #     shdf.to_pickle(pkl_name)
     
     t = df.groupby('UploadKey',as_index=False)[['bgLatitude','bgLongitude',
                                             'bgStateName','APINumber']].first()

@@ -217,10 +217,13 @@ class CAS_list_maker():
         # print(f'Number in CompTox names: {len(self.CTname)}')
 
     def make_syn_list(self,cas,rec,caslst,synlst):
+        if rec in ['',None,np.NaN]:
+            return caslst, synlst
         lst = rec.split('|')
         for i in lst:
             caslst.append(cas)
             synlst.append(i.strip().lower())
+        #print(f'finished syn_list {cas}')
         return caslst,synlst
 
     def get_CT_list(self,fn):
@@ -228,7 +231,9 @@ class CAS_list_maker():
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             names = self.make_CT_name_list_from_fn(fn)
+            #print('got names')
             rawsyn = self.make_CT_synraw_list_from_fn(fn, names)
+            #print('got rawsyn')
         caslst = []
         synlst = []
         for i,row in rawsyn.iterrows():
@@ -246,11 +251,13 @@ class CAS_list_maker():
         # current list first - if the fresh batch search file has no syn page 
         # (because EPA's site has lost that function), use previously saved
         # version.  It will not be complete, but will be better than NO CT syns.
-                       
+        
+        #print('start ct syn list')               
         try:
             fn = os.path.join(self.work_dir,CT_bat_fn)
-            #print(fn)
+            #print(f' using {fn}')
             curr_syn = self.get_CT_list(fn)
+            
             print(f' - Using fresh version of {CT_bat_fn} for synonyms')
         
         except:
@@ -265,6 +272,7 @@ class CAS_list_maker():
         save_df(curr_syn,os.path.join(self.work_dir,'CT_syn_backup.parquet'))
         
         # now broad search
+        #print('start broad sny list')
         try:
             fn = os.path.join(self.work_dir,CT_broad_fn)
             broad_syn = self.get_CT_list(fn)
