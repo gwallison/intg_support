@@ -287,7 +287,11 @@ def update_CompTox_lists():
     import intg_support.make_CAS_ref_files as mcrf
     maker = mcrf.CAS_list_maker(orig_dir,work_dir)
     maker.make_full_package()
-    # get_df(r"C:\MyDocs\OpenFF\src\openFF-cloud\work_dir\comptox_lists_table.parquet")
+    t = get_df(os.path.join(work_dir,"comptox_lists_table.parquet"))
+
+    print('\nThe following list is the list of recognized CompTox chemicals.')
+    print('If your new chems are NOT on the list, but you were expecting them there, \nyou may have not saved the results file correctly.')
+    iShow(t[['cas_number']])
     completed()
     
 def casing_step1():
