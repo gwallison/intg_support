@@ -41,6 +41,40 @@ def find_wells_near_point(lat,lon,wellgdf,crs=final_crs,name='test',
     tmp = gpd.sjoin(t,s,how='inner')#,predicate='within')
     return tmp.api10.tolist()
 
+def show_simple_map(lat,lon,clickable=False):
+    import folium
+    mlst = [{'location': [lat,lon], 'color':'red', 'popup':'Focal point'}]
+    m = folium.Map(location=[lat, lon], zoom_start=12)
+
+    markers = mlst
+    # Add the markers to the map
+    for marker in markers:
+        folium.Marker(
+            location=marker['location'],
+            icon=folium.Icon(color=marker['color']),
+            popup=marker['popup']
+        ).add_to(m)
+        # Display the map
+           
+    # Add a tile layer with satellite imagery
+    folium.TileLayer(
+        tiles='https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+        attr='Google',
+        name='Google Satellite',
+        overlay=False,
+        control=True,
+        subdomains=['mt0', 'mt1', 'mt2', 'mt3']
+    ).add_to(m)
+    
+    if clickable:
+        folium.features.ClickForLatLng().add_to(m)
+        
+    # Add layer control to switch between base maps
+    folium.LayerControl().add_to(m)
+
+    return m
+    
+
 def showWells(fulldf,flat,flon,apilst):
     import folium
     mlst = [{'location': [flat,flon], 'color':'red', 'popup':'Focal point'}]
