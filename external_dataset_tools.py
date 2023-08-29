@@ -56,7 +56,7 @@ def add_RQ_list(df,sources='./sources/'):
     df = pd.merge(df,rq,on='bgCAS',how='left')
     return df
     
-def add_CompTox_refs(df,sources='./sources/'):
+def old_add_CompTox_refs(df,sources='./sources/'):
     
     ctfiles = {'CWA': 'Chemical List CWA311HS-2022-03-31.csv',
                'DWSHA' : 'Chemical List EPADWS-2022-03-31.csv',
@@ -84,10 +84,38 @@ def add_CompTox_refs(df,sources='./sources/'):
                   how='left',on='bgCAS')
     return df
        
+def add_CompTox_refs(df,sources='./sources/',comptox_dir='./curation_files/'):
+    
+    ctfiles = {'CWA': 'Chemical List CWA311HS-2022-03-31.csv',
+               'DWSHA' : 'Chemical List EPADWS-2022-03-31.csv',
+               'AQ_CWA': 'Chemical List WATERQUALCRIT-2022-03-31.csv',
+               'HH_CWA': 'Chemical List NWATRQHHC-2022-03-31.csv',
+               'IRIS': 'Chemical List IRIS-2022-03-31.csv',
+               'PFAS_list': 'Chemical List PFASMASTER-2022-04-01.csv',
+               'volatile_list': 'Chemical List VOLATILOME-2022-04-01.csv'}
+    for lst in ctfiles.keys():
+        print(f'     -- processing {lst}')
+        ctdf = pd.read_csv(os.path.join(sources,ctfiles[lst]),low_memory=False,
+                           dtype={'CASRN':'str'})
+        clst= ctdf.CASRN.unique().tolist()
+        df['is_on_'+lst] = df.bgCAS.isin(clst)
+        
+    # now add the epa ref numbers and names
+    reffn = os.path.join(comptox_dir,'master_cas_number_list.parquet')
+    refdf = pd.read_parquet(reffn)
+    # we currently use CASRN for bgIngredientName because of duplicate sysnonyms
+    refdf = refdf.rename({'cas_number':'bgCAS',
+                          'ing_name':'bgIngredientName',
+                          'epa_preferred_name':'epa_pref_name'},axis=1)
+    refdf = refdf[~refdf.bgCAS.duplicated()] # get rid of double callouts
+    df = pd.merge(df,refdf[['bgCAS','DTXSID','epa_pref_name','iupac_name']],
+                  how='left',on='bgCAS')
+    return df
     
 def add_all_bgCAS_tables(df,sources='./sources/external_refs/',
+                         comptox_dir = './curation_files/',
                          outdir='./outdir/'):
-    df = add_CompTox_refs(df,sources)
+    df = add_CompTox_refs(df,sources,comptox_dir=comptox_dir)
     df = add_NPDWR_list(df,sources)
     df = add_Prop65_ref(df,sources)
     df = add_TEDX_ref(df,sources)

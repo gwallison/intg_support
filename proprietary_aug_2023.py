@@ -14,6 +14,7 @@ import os
 from IPython.display import display
 from intg_support.file_handlers import  get_df
 from intg_support.fetch_files import fetch_repo_full_df
+from intg_support.common import round_sig
 
 use_itables = True
 

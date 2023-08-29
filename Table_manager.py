@@ -99,6 +99,7 @@ class Table_constructor():
         self.print_step('add external references such as TEDX and PFAS',1)
         ext_sources_dir = self.extdir
         df = et.add_all_bgCAS_tables(df,sources=ext_sources_dir,
+                                     comptox_dir = self.trans_dir,
                                      outdir=self.outdir)
         self.tables['bgCAS'] = df
 

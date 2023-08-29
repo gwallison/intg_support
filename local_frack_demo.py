@@ -31,7 +31,7 @@ def get_lat_lon(gb1,sch_df,index=426):
 def show_target_map(lat,lon,clickable=False):
     gt.show_simple_map(lat,lon,clickable)
 
-def locate_wells(df,lat,lon):
+def locate_wells(df,lat,lon,buffer_m=1609):
     wells = gt.make_as_well_gdf(df)
     apis = gt.find_wells_near_point(lat,lon,wells)#,buffer_m=200)
     print(f'Number of wells = {len(apis)}')
