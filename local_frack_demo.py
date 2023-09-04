@@ -37,6 +37,13 @@ def locate_wells(df,lat,lon,buffer_m=1609):
     print(f'Number of wells = {len(apis)}')
     return apis
     
+def locate_wells_within_area(df,area_df,buffer_m=1609):
+    wells = gt.make_as_well_gdf(df)
+    apis = gt.find_wells_within_area(area_df,wells)#,buffer_m=200)
+    print(f'Number of wells = {len(apis)}')
+    return apis
+
+
     
 def show_well_info(apis):
     t = df[df.api10.isin(apis)].copy()
