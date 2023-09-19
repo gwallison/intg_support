@@ -11,6 +11,7 @@ opt.maxBytes = 0
 opt.maxColumns = 0
 
 work_dir = './tmp'
+work_dir = ''
 df = get_df(os.path.join(work_dir,'full_df.parquet'))
 df = df[df.in_std_filtered]
 
