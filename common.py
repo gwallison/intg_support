@@ -47,6 +47,7 @@ def getFingerprintImg(cas):
     return "<center>ChemInformatics not available</center>"
     
 def getFingerprintStatus(cas):
+    #!!!!! Doesn't work for colab - need to pull from storage, not local
     fp_path = os.path.join(pic_dir,cas,'haz_fingerprint.png')
     # take comptox version if it exists
     if os.path.exists(fp_path):

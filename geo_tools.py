@@ -137,7 +137,7 @@ def showWells_in_area(fulldf,area_df,apilst):
         mlst.append({'location': locs, 'color':'blue', 'popup':f'APINumber: {api}'})
 
     location=[area_df.centroid.geometry.y.iloc[0],area_df.centroid.geometry.x.iloc[0]]
-    m = folium.Map(location=location, zoom_start=10)
+    m = folium.Map(location=location, zoom_start=10,width='50%',height='50%')
 
     markers = mlst
     # Add the markers to the map
